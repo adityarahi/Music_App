@@ -18,7 +18,7 @@ namespace {
 
 constexpr ImVec4 kAccent{0.47f, 0.55f, 1.0f, 1.0f};
 
-enum class Icon { Previous, Play, Pause, Next };
+enum class Icon { Previous, Play, Pause, Next, Fullscreen };
 
 std::string formatTime(double seconds) {
     const int total = static_cast<int>(std::max(seconds, 0.0));
@@ -73,6 +73,18 @@ bool iconButton(const char* id, Icon icon, float size) {
             draw->AddRectFilled(ImVec2(c.x + s * 0.75f, c.y - s), ImVec2(c.x + s * 1.1f, c.y + s), fg);
             draw->AddTriangleFilled(ImVec2(c.x - s, c.y - s), ImVec2(c.x - s, c.y + s), ImVec2(c.x + s * 0.75f, c.y), fg);
             break;
+        case Icon::Fullscreen: {
+            // Four corner brackets.
+            const float e = s * 1.2f, l = s * 0.6f, t = std::max(1.5f, size * 0.07f);
+            for (const float sx : {-1.0f, 1.0f}) {
+                for (const float sy : {-1.0f, 1.0f}) {
+                    const ImVec2 corner(c.x + sx * e, c.y + sy * e);
+                    draw->AddLine(corner, ImVec2(corner.x - sx * l, corner.y), fg, t);
+                    draw->AddLine(corner, ImVec2(corner.x, corner.y - sy * l), fg, t);
+                }
+            }
+            break;
+        }
     }
     return pressed;
 }
@@ -181,10 +193,13 @@ void Ui::updateVisibility(float dt) {
 void Ui::draw(Player& player, VisualizerManager& visualizers, float dt) {
     updateVisibility(dt);
 
-    // Mouse wheel over the visualization changes the volume.
+    // Over the visualization (not the controls): wheel changes the volume,
+    // double-click toggles full screen.
     const ImGuiIO& io = ImGui::GetIO();
     if (!io.WantCaptureMouse && io.MouseWheel != 0.0f)
         player.audio().setVolume(player.audio().volume() + 0.05f * io.MouseWheel);
+    if (!io.WantCaptureMouse && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+        fullscreenRequested_ = true;
 
     if (alpha_ <= 0.01f) return;
     ImGui::GetStyle().Alpha = alpha_;
@@ -251,8 +266,8 @@ void Ui::drawControlBar(Player& player, VisualizerManager& visualizers) {
     const float vizNameWidth = em * 9.0f;
     const float volumeWidth = em * 7.0f;
     const float playlistWidth = ImGui::CalcTextSize("Playlist").x + style.FramePadding.x * 2.0f;
-    const float rightWidth = playlistWidth + buttonH * 2.0f + vizNameWidth + volumeWidth + ImGui::CalcTextSize("Vol").x +
-                             style.ItemSpacing.x * 6.0f;
+    const float rightWidth = playlistWidth + buttonH * 3.0f + vizNameWidth + volumeWidth + ImGui::CalcTextSize("Vol").x +
+                             style.ItemSpacing.x * 7.0f;
     const float rightX = rowEndX - rightWidth;
     const float centeredY = rowY + (iconSize - buttonH) * 0.5f;
 
@@ -287,6 +302,9 @@ void Ui::drawControlBar(Player& player, VisualizerManager& visualizers) {
     ImGui::SetNextItemWidth(volumeWidth);
     float volume = audio.volume() * 100.0f;
     if (ImGui::SliderFloat("##volume", &volume, 0.0f, 100.0f, "%.0f%%")) audio.setVolume(volume / 100.0f);
+    ImGui::SameLine();
+    if (iconButton("##fullscreen", Icon::Fullscreen, buttonH)) fullscreenRequested_ = true;
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Full screen (F)");
 
     ImGui::End();
 }

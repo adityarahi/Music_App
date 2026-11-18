@@ -2,6 +2,8 @@
 
 #include "ui/FileBrowser.h"
 
+#include <utility>
+
 struct GLFWwindow;
 class Player;
 class VisualizerManager;
@@ -25,6 +27,9 @@ public:
     // True while a text field has focus, so global shortcuts should be ignored.
     bool wantsKeyboard() const;
 
+    // True once after the fullscreen button or a double-click on the visuals.
+    bool takeFullscreenRequest() { return std::exchange(fullscreenRequested_, false); }
+
     void toggleVisible() { visible_ = !visible_; }
     void togglePlaylist() { playlistOpen_ = !playlistOpen_; }
     void openFileBrowser() { browser_.open(); }
@@ -45,6 +50,7 @@ private:
 
     FileBrowser browser_;
     bool visible_ = true;        // Tab toggles
+    bool fullscreenRequested_ = false;
     bool playlistOpen_ = false;
     float idleSeconds_ = 0.0f;
     float alpha_ = 1.0f;         // current fade level of all UI

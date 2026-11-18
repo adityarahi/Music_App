@@ -86,11 +86,15 @@ add_executable(music_app
     src/player/Playlist.cpp
     src/ui/FileBrowser.cpp
     src/ui/Ui.cpp
+    src/render/ColorMesh.cpp
     src/render/Fullscreen.cpp
     src/render/GlowLine.cpp
+    src/render/PointSprites.cpp
     src/render/RenderTarget.cpp
     src/render/Shader.cpp
+    src/viz/CircularSpectrum.cpp
     src/viz/FeedbackTunnel.cpp
+    src/viz/Kaleidoscope.cpp
     src/viz/Oscilloscope.cpp
     src/viz/Plasma.cpp
     src/viz/SpectrumBars.cpp

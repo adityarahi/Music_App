@@ -53,8 +53,9 @@ in the playlist. MP3, FLAC and WAV are supported.
 | V / Shift+V | Next / previous visualizer (1.5 s cross-fade) |
 | P | Show / hide playlist |
 | O | Add files... |
+| F / F11 / double-click | Full screen on / off |
 | Tab | Hide / show all controls |
-| Esc | Quit |
+| Esc | Leave full screen, or quit |
 
 In the playlist: double-click a track to play it, right-click to remove it.
 
@@ -81,13 +82,21 @@ src/
     Shader.*            GLSL program helper
     RenderTarget.*      offscreen framebuffer + FramebufferScope
     Fullscreen.*        full-screen triangle for post-processing passes
-    GlowLine.*          thick soft-edged glowing polylines
-    Color.h             HSV -> RGB
+    GlowLine.*          thick soft-edged glowing polylines (optional per-point colour)
+    ColorMesh.*         batched coloured triangles (bars, gradients, glows)
+    PointSprites.*      soft glowing dots (sparks, beads)
+    Color.h             HSV -> RGB, colour helpers
   viz/
     Visualizer.h        interface every effect implements
     VisualizerManager.* switching and cross-fades
+    PeakCaps.h          falling peak markers for spectrum effects
+    WaveLoop.h          waveform -> smooth seamless loop
     SpectrumBars.*      glowing bars with falling peak caps and reflection
-    FeedbackTunnel.*    waveform ring with zooming, fading feedback trails
+    CircularSpectrum.*  mirrored radial bars around a pulsing core
+    FeedbackTunnel.*    waveform rings in a zooming feedback tunnel, with
+                        scenes that mix rainbow / stereo / shockwaves /
+                        winding / flower features over time
+    Kaleidoscope.*      flowing feedback canvas seen through a 6-way mirror
     Plasma.*            shader-only flowing colour field
     Oscilloscope.*      stereo glowing waveform
 third_party/glad/       generated OpenGL 3.3 core loader

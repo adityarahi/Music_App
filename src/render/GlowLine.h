@@ -1,5 +1,6 @@
 #pragma once
 
+#include "render/Color.h"
 #include "render/Shader.h"
 
 #include <cstddef>
@@ -22,8 +23,9 @@ public:
     bool init();
 
     // Points are in pixels of the target being drawn to. `closed` joins the
-    // last point back to the first.
-    void setPoints(const std::vector<Vec2>& points, bool closed);
+    // last point back to the first. Optional per-point colours are multiplied
+    // with the colour given to draw(); without them every point is white.
+    void setPoints(const std::vector<Vec2>& points, bool closed, const std::vector<Rgb>* colors = nullptr);
 
     // Expects additive blending to be enabled by the caller.
     void draw(float targetWidth, float targetHeight, float halfWidth, float falloff, const float* rgb, float alpha);
@@ -33,6 +35,7 @@ private:
         float x, y;     // point on the line, pixels
         float nx, ny;   // unit normal
         float side;     // -1 / +1
+        float r, g, b;  // per-point colour
     };
 
     Shader shader_;

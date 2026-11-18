@@ -1,6 +1,8 @@
 #include "App.h"
 
+#include "viz/CircularSpectrum.h"
 #include "viz/FeedbackTunnel.h"
+#include "viz/Kaleidoscope.h"
 #include "viz/Oscilloscope.h"
 #include "viz/Plasma.h"
 #include "viz/SpectrumBars.h"
@@ -25,6 +27,31 @@ std::string formatTime(double seconds) {
 
 App* fromWindow(GLFWwindow* w) { return static_cast<App*>(glfwGetWindowUserPointer(w)); }
 
+// The monitor that contains most of the window, so full screen happens where the window is.
+GLFWmonitor* monitorForWindow(GLFWwindow* window) {
+    int wx, wy, ww, wh;
+    glfwGetWindowPos(window, &wx, &wy);
+    glfwGetWindowSize(window, &ww, &wh);
+
+    int count = 0;
+    GLFWmonitor** monitors = glfwGetMonitors(&count);
+    GLFWmonitor* best = glfwGetPrimaryMonitor();
+    int bestArea = 0;
+    for (int i = 0; i < count; ++i) {
+        const GLFWvidmode* mode = glfwGetVideoMode(monitors[i]);
+        int mx, my;
+        glfwGetMonitorPos(monitors[i], &mx, &my);
+        const int overlapW = std::min(wx + ww, mx + mode->width) - std::max(wx, mx);
+        const int overlapH = std::min(wy + wh, my + mode->height) - std::max(wy, my);
+        const int area = std::max(overlapW, 0) * std::max(overlapH, 0);
+        if (area > bestArea) {
+            bestArea = area;
+            best = monitors[i];
+        }
+    }
+    return best;
+}
+
 }  // namespace
 
 App::App() = default;
@@ -47,6 +74,9 @@ int App::run(const std::vector<std::string>& paths) {
         if (tour_ && tour_->afterRender(dt, audio_, visualizers_, ui_, fbWidth_, fbHeight_))
             glfwSetWindowShouldClose(window_, GLFW_TRUE);
         glfwSwapBuffers(window_);
+
+        // Switched between frames so nothing is mid-draw when the size changes.
+        if (ui_.takeFullscreenRequest()) toggleFullscreen();
     }
 
     shutdown();
@@ -89,7 +119,9 @@ bool App::init() {
     if (!audio_.init()) return false;
 
     visualizers_.add(std::make_unique<SpectrumBars>());
+    visualizers_.add(std::make_unique<CircularSpectrum>());
     visualizers_.add(std::make_unique<FeedbackTunnel>());
+    visualizers_.add(std::make_unique<Kaleidoscope>());
     visualizers_.add(std::make_unique<Plasma>());
     visualizers_.add(std::make_unique<Oscilloscope>());
     if (!visualizers_.init(fbWidth_, fbHeight_)) return false;
@@ -141,6 +173,20 @@ void App::updateTitle() {
     glfwSetWindowTitle(window_, title.c_str());
 }
 
+void App::toggleFullscreen() {
+    if (!fullscreen_) {
+        glfwGetWindowPos(window_, &windowedX_, &windowedY_);
+        glfwGetWindowSize(window_, &windowedWidth_, &windowedHeight_);
+        GLFWmonitor* monitor = monitorForWindow(window_);
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+        glfwSetWindowMonitor(window_, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+    } else {
+        glfwSetWindowMonitor(window_, nullptr, windowedX_, windowedY_, windowedWidth_, windowedHeight_, 0);
+    }
+    fullscreen_ = !fullscreen_;
+    glfwSwapInterval(1);  // some drivers reset vsync on a mode change
+}
+
 void App::onKey(int key, int action, int mods) {
     if (action != GLFW_PRESS && action != GLFW_REPEAT) return;
     if (ui_.wantsKeyboard()) return;  // typing in a text field
@@ -149,7 +195,13 @@ void App::onKey(int key, int action, int mods) {
     const double seekStep = shift ? 30.0 : 5.0;
 
     switch (key) {
-        case GLFW_KEY_ESCAPE: glfwSetWindowShouldClose(window_, GLFW_TRUE); break;
+        case GLFW_KEY_ESCAPE:
+            if (!pressed) break;
+            if (fullscreen_) toggleFullscreen();  // first Esc leaves full screen, the next one quits
+            else glfwSetWindowShouldClose(window_, GLFW_TRUE);
+            break;
+        case GLFW_KEY_F:
+        case GLFW_KEY_F11:    if (pressed) toggleFullscreen(); break;
         case GLFW_KEY_SPACE:  if (pressed) player_.togglePause(); break;
         case GLFW_KEY_RIGHT:  audio_.seek(audio_.position() + seekStep); break;
         case GLFW_KEY_LEFT:   audio_.seek(audio_.position() - seekStep); break;

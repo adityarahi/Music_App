@@ -8,21 +8,25 @@ constexpr const char* kVertexSrc = R"(#version 330 core
 layout(location = 0) in vec2 aPos;
 layout(location = 1) in vec2 aNormal;
 layout(location = 2) in float aSide;
+layout(location = 3) in vec3 aColor;
 
 uniform vec2 uResolution;
 uniform float uHalfWidth;
 
 out float vSide;
+out vec3 vColor;
 
 void main() {
     vec2 px = aPos + aNormal * aSide * uHalfWidth;
     gl_Position = vec4(px / uResolution * 2.0 - 1.0, 0.0, 1.0);
     vSide = aSide;
+    vColor = aColor;
 }
 )";
 
 constexpr const char* kFragmentSrc = R"(#version 330 core
 in float vSide;
+in vec3 vColor;
 
 uniform vec3 uColor;
 uniform float uAlpha;
@@ -32,7 +36,7 @@ out vec4 fragColor;
 
 void main() {
     float edge = clamp(1.0 - abs(vSide), 0.0, 1.0);
-    fragColor = vec4(uColor, uAlpha * pow(edge, uFalloff));
+    fragColor = vec4(uColor * vColor, uAlpha * pow(edge, uFalloff));
 }
 )";
 
@@ -55,14 +59,16 @@ bool GlowLine::init() {
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void*>(offsetof(Vertex, x)));
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void*>(offsetof(Vertex, nx)));
     glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void*>(offsetof(Vertex, side)));
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void*>(offsetof(Vertex, r)));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(3);
     glBindVertexArray(0);
     return true;
 }
 
-void GlowLine::setPoints(const std::vector<Vec2>& points, bool closed) {
+void GlowLine::setPoints(const std::vector<Vec2>& points, bool closed, const std::vector<Rgb>* colors) {
     vertices_.clear();
     const std::size_t n = points.size();
     if (n < 2) return;
@@ -88,8 +94,9 @@ void GlowLine::setPoints(const std::vector<Vec2>& points, bool closed) {
             ty = 0.0f;
         }
 
-        vertices_.push_back({p.x, p.y, -ty, tx, -1.0f});
-        vertices_.push_back({p.x, p.y, -ty, tx, +1.0f});
+        const Rgb col = colors && i < colors->size() ? (*colors)[i] : Rgb{1.0f, 1.0f, 1.0f};
+        vertices_.push_back({p.x, p.y, -ty, tx, -1.0f, col.r, col.g, col.b});
+        vertices_.push_back({p.x, p.y, -ty, tx, +1.0f, col.r, col.g, col.b});
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo_);

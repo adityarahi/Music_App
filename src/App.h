@@ -26,6 +26,7 @@ private:
     void shutdown();
     void frame(float dt);
     void updateTitle();
+    void toggleFullscreen();
 
     void onKey(int key, int action, int mods);
     void onDrop(int count, const char** paths);
@@ -34,6 +35,9 @@ private:
     GLFWwindow* window_ = nullptr;
     int fbWidth_ = 0;
     int fbHeight_ = 0;
+
+    bool fullscreen_ = false;
+    int windowedX_ = 0, windowedY_ = 0, windowedWidth_ = 1280, windowedHeight_ = 720;  // to restore
 
     AudioEngine audio_;
     AudioAnalyzer analyzer_;
