@@ -28,6 +28,9 @@ private:
     void updateTitle();
     void toggleFullscreen();
 
+    // Files handed over by a second launch (e.g. "Open with" in Explorer).
+    void openFromOutside(const std::vector<std::string>& paths);
+
     void onKey(int key, int action, int mods);
     void onDrop(int count, const char** paths);
     void onFramebufferResize(int width, int height);
@@ -48,4 +51,5 @@ private:
     std::unique_ptr<DevTour> tour_;   // only when MUSIC_APP_TOUR is set
 
     double titleTimer_ = 0.0;
+    double lastExternalOpen_ = -10.0;
 };

@@ -31,6 +31,7 @@ bool DevTour::afterRender(float dt, AudioEngine& audio, VisualizerManager& visua
         started_ = true;
         if (audio.duration() > kStartAt + 30.0) audio.seek(kStartAt);
         ui.setPlaylistOpen(true);
+        ui.setSettingsOpen(true);
         std::printf("Tour: capturing %zu visualizers into %s\n", visualizers.count(), directory_.c_str());
     }
 
@@ -42,6 +43,7 @@ bool DevTour::afterRender(float dt, AudioEngine& audio, VisualizerManager& visua
         capture("0_controls", width, height);
         uiCaptured_ = true;
         ui.setPlaylistOpen(false);
+        ui.setSettingsOpen(false);
         ui.hideUntilMouseMoves();
         clock_ = 0.0f;
         return false;

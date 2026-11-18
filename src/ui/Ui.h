@@ -2,6 +2,7 @@
 
 #include "ui/FileBrowser.h"
 
+#include <string>
 #include <utility>
 
 struct GLFWwindow;
@@ -32,10 +33,12 @@ public:
 
     void toggleVisible() { visible_ = !visible_; }
     void togglePlaylist() { playlistOpen_ = !playlistOpen_; }
+    void toggleSettings() { settingsOpen_ = !settingsOpen_; }
     void openFileBrowser() { browser_.open(); }
 
     // Used by the screenshot tour.
     void setPlaylistOpen(bool open) { playlistOpen_ = open; }
+    void setSettingsOpen(bool open) { settingsOpen_ = open; }
     void hideUntilMouseMoves() { idleSeconds_ = kHideAfterSeconds; }
 
 private:
@@ -44,6 +47,7 @@ private:
     void updateVisibility(float dt);
     void drawControlBar(Player& player, VisualizerManager& visualizers);
     void drawPlaylist(Player& player);
+    void drawSettings(VisualizerManager& visualizers);
 
     GLFWwindow* window_ = nullptr;
     bool initialised_ = false;
@@ -52,6 +56,8 @@ private:
     bool visible_ = true;        // Tab toggles
     bool fullscreenRequested_ = false;
     bool playlistOpen_ = false;
+    bool settingsOpen_ = false;
+    std::string openWithMessage_;   // result of the last register/unregister click
     float idleSeconds_ = 0.0f;
     float alpha_ = 1.0f;         // current fade level of all UI
     bool cursorHidden_ = false;

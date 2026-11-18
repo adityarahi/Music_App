@@ -23,10 +23,13 @@ public:
 
     void next();
     void previous();
+    void select(std::size_t index);   // cross-fades to visualizer `index`
 
     // The visualizer being shown (or faded to).
     const Visualizer& current() const { return *visualizers_[active_]; }
+    std::size_t currentIndex() const { return active_; }
     std::size_t count() const { return visualizers_.size(); }
+    const Visualizer& at(std::size_t index) const { return *visualizers_[index]; }
 
     void update(const AudioFeatures& features, float dt);
 

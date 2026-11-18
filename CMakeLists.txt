@@ -78,6 +78,7 @@ target_include_directories(glad PUBLIC third_party/glad/include)
 add_executable(music_app
     src/main.cpp
     src/App.cpp
+    src/platform/Platform.cpp
     src/DevTour.cpp
     src/audio/AudioEngine.cpp
     src/audio/AudioAnalyzer.cpp
@@ -113,7 +114,18 @@ endif()
 
 if(WIN32)
     target_compile_definitions(music_app PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
-    target_link_libraries(music_app PRIVATE shell32)
+    target_link_libraries(music_app PRIVATE shell32 advapi32)
+
+    # Icon + version info (the version's FileDescription is the name shown in "Open with").
+    enable_language(RC)
+    set(ICON_PATH ${CMAKE_CURRENT_SOURCE_DIR}/assets/music_app.ico)
+    configure_file(cmake/music_app.rc.in ${CMAKE_CURRENT_BINARY_DIR}/music_app.rc @ONLY)
+    target_sources(music_app PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/music_app.rc)
+
+    # Release builds are GUI apps with no console window; Debug keeps the console for logs.
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        set_target_properties(music_app PROPERTIES WIN32_EXECUTABLE ON)
+    endif()
     if(MINGW)
         # Single self-contained .exe: no libstdc++/libgcc/winpthread DLLs to ship.
         target_link_options(music_app PRIVATE -static)

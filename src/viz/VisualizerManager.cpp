@@ -68,6 +68,10 @@ void VisualizerManager::previous() {
     switchTo((active_ + visualizers_.size() - 1) % visualizers_.size());
 }
 
+void VisualizerManager::select(std::size_t index) {
+    if (index < visualizers_.size()) switchTo(index);
+}
+
 void VisualizerManager::switchTo(std::size_t index) {
     if (index == active_) return;
     fadingOut_ = active_;  // pressing again mid-fade fades from what was being faded to

@@ -1,5 +1,6 @@
 #include "ui/Ui.h"
 
+#include "platform/Platform.h"
 #include "player/Player.h"
 #include "viz/VisualizerManager.h"
 
@@ -176,7 +177,7 @@ void Ui::updateVisibility(float dt) {
     idleSeconds_ = activity ? 0.0f : idleSeconds_ + dt;
 
     // Stay up while the user is clearly using the UI.
-    const bool pinned = playlistOpen_ || browser_.isOpen() || seeking_ || io.WantCaptureMouse;
+    const bool pinned = playlistOpen_ || settingsOpen_ || browser_.isOpen() || seeking_ || io.WantCaptureMouse;
     const bool show = visible_ && (idleSeconds_ < kHideAfterSeconds || pinned);
 
     // Appear quickly, fade out gently.
@@ -206,6 +207,7 @@ void Ui::draw(Player& player, VisualizerManager& visualizers, float dt) {
 
     drawControlBar(player, visualizers);
     if (playlistOpen_) drawPlaylist(player);
+    if (settingsOpen_) drawSettings(visualizers);
 
     const auto chosen = browser_.draw();
     if (!chosen.empty()) player.enqueue(chosen);
@@ -266,8 +268,9 @@ void Ui::drawControlBar(Player& player, VisualizerManager& visualizers) {
     const float vizNameWidth = em * 9.0f;
     const float volumeWidth = em * 7.0f;
     const float playlistWidth = ImGui::CalcTextSize("Playlist").x + style.FramePadding.x * 2.0f;
-    const float rightWidth = playlistWidth + buttonH * 3.0f + vizNameWidth + volumeWidth + ImGui::CalcTextSize("Vol").x +
-                             style.ItemSpacing.x * 7.0f;
+    const float settingsWidth = ImGui::CalcTextSize("Settings").x + style.FramePadding.x * 2.0f;
+    const float rightWidth = playlistWidth + settingsWidth + buttonH * 3.0f + vizNameWidth + volumeWidth +
+                             ImGui::CalcTextSize("Vol").x + style.ItemSpacing.x * 8.0f;
     const float rightX = rowEndX - rightWidth;
     const float centeredY = rowY + (iconSize - buttonH) * 0.5f;
 
@@ -282,6 +285,8 @@ void Ui::drawControlBar(Player& player, VisualizerManager& visualizers) {
 
     ImGui::SetCursorPos(ImVec2(rightX, centeredY));
     if (ImGui::Button("Playlist")) togglePlaylist();
+    ImGui::SameLine();
+    if (ImGui::Button("Settings")) toggleSettings();
     ImGui::SameLine();
     if (ImGui::ArrowButton("##vizprev", ImGuiDir_Left)) visualizers.previous();
     ImGui::SameLine();
@@ -386,4 +391,80 @@ void Ui::drawPlaylist(Player& player) {
         playlist.remove(*toRemove);
     }
     if (toPlay) player.play(*toPlay);
+}
+
+void Ui::drawSettings(VisualizerManager& visualizers) {
+    const float em = ImGui::GetFontSize();
+    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+    const float margin = em * 0.6f;
+    ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + margin, viewport->WorkPos.y + margin), ImGuiCond_Appearing);
+    // Grows to fit its contents but never past the control bar; scrolls beyond that.
+    const float maxHeight = std::max(viewport->WorkSize.y - barHeight_ - 3.0f * margin, em * 8.0f);
+    ImGui::SetNextWindowSizeConstraints(ImVec2(em * 20.0f, 0.0f), ImVec2(em * 30.0f, maxHeight));
+
+    if (!ImGui::Begin("Settings", &settingsOpen_, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::End();
+        return;
+    }
+
+    ImGui::SeparatorText("Visualization");
+    for (std::size_t i = 0; i < visualizers.count(); ++i) {
+        if (ImGui::RadioButton(visualizers.at(i).name(), visualizers.currentIndex() == i)) visualizers.select(i);
+    }
+
+    if (platform::supportsOpenWith()) {
+        ImGui::SeparatorText("Windows integration");
+        const bool registered = platform::isOpenWithRegistered();
+        ImGui::TextWrapped(registered ? "Music App is in the \"Open with\" menu for MP3, FLAC and WAV files."
+                                      : "Add Music App to the \"Open with\" menu for MP3, FLAC and WAV files.");
+
+        // Registering a copy that lives inside WSL only works while WSL is running.
+        const std::string exe = platform::executablePath();
+        if (exe.rfind("\\\\", 0) == 0) {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.75f, 0.35f, 1.0f));
+            ImGui::TextWrapped("This copy is running from inside WSL. Copy music_app.exe to a Windows folder "
+                               "(for example C:\\Apps\\MusicApp) and register from there.");
+            ImGui::PopStyleColor();
+        }
+
+        if (!registered) {
+            if (ImGui::Button("Add to \"Open with\"")) {
+                std::string error;
+                openWithMessage_ = platform::registerOpenWith(error)
+                                       ? "Done. Right-click a song > Open with > Music App."
+                                       : error;
+            }
+        } else if (ImGui::Button("Remove from \"Open with\"")) {
+            platform::unregisterOpenWith();
+            openWithMessage_ = "Removed.";
+        }
+        if (!openWithMessage_.empty()) ImGui::TextDisabled("%s", openWithMessage_.c_str());
+    }
+
+    ImGui::Spacing();
+    if (ImGui::CollapsingHeader("Keyboard shortcuts") && ImGui::BeginTable("keys", 2, ImGuiTableFlags_SizingFixedFit)) {
+        static constexpr const char* kKeys[][2] = {
+            {"Space", "Play / pause"},
+            {"Left / Right", "Seek 5 s (Shift: 30 s)"},
+            {"Up / Down, wheel", "Volume"},
+            {"N / Shift+N", "Next / previous track"},
+            {"V / Shift+V", "Next / previous visualizer"},
+            {"F, F11, double-click", "Full screen"},
+            {"P", "Playlist"},
+            {"S", "Settings"},
+            {"O", "Add files"},
+            {"Tab", "Hide / show controls"},
+            {"Esc", "Leave full screen, or quit"},
+        };
+        for (const auto& row : kKeys) {
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::TextColored(kAccent, "%s", row[0]);
+            ImGui::TableNextColumn();
+            ImGui::TextUnformatted(row[1]);
+        }
+        ImGui::EndTable();
+    }
+
+    ImGui::End();
 }

@@ -1,5 +1,6 @@
 #include "App.h"
 
+#include "platform/Platform.h"
 #include "viz/CircularSpectrum.h"
 #include "viz/FeedbackTunnel.h"
 #include "viz/Kaleidoscope.h"
@@ -59,8 +60,14 @@ App::App() = default;
 App::~App() { shutdown(); }
 
 int App::run(const std::vector<std::string>& paths) {
+    // Already running (e.g. a song double-clicked in Explorer)? Hand the files over and quit.
+    if (platform::forwardToRunningInstance(paths)) return 0;
+
     if (!init()) return 1;
-    if (!paths.empty()) player_.enqueue(paths);
+    if (!paths.empty()) {
+        player_.enqueue(paths);
+        lastExternalOpen_ = glfwGetTime();
+    }
 
     double last = glfwGetTime();
     while (!glfwWindowShouldClose(window_)) {
@@ -115,6 +122,7 @@ bool App::init() {
     glfwSetFramebufferSizeCallback(window_, [](GLFWwindow* w, int width, int height) { fromWindow(w)->onFramebufferResize(width, height); });
 
     glfwGetFramebufferSize(window_, &fbWidth_, &fbHeight_);
+    platform::receiveForwardedFiles(window_, [this](std::vector<std::string> paths) { openFromOutside(paths); });
 
     if (!audio_.init()) return false;
 
@@ -210,11 +218,24 @@ void App::onKey(int key, int action, int mods) {
         case GLFW_KEY_N:      if (pressed) { if (shift) player_.previous(); else player_.next(); } break;
         case GLFW_KEY_V:      if (pressed) { if (shift) visualizers_.previous(); else visualizers_.next(); } break;
         case GLFW_KEY_P:      if (pressed) ui_.togglePlaylist(); break;
+        case GLFW_KEY_S:      if (pressed) ui_.toggleSettings(); break;
         case GLFW_KEY_O:      if (pressed) ui_.openFileBrowser(); break;
         case GLFW_KEY_TAB:    if (pressed) ui_.toggleVisible(); break;
         default: return;
     }
     updateTitle();
+}
+
+void App::openFromOutside(const std::vector<std::string>& paths) {
+    // Opening several files in Explorer starts one launch per file, a moment
+    // apart: the first one plays, the rest join the playlist behind it.
+    const double now = glfwGetTime();
+    const bool sameBatch = now - lastExternalOpen_ < 1.5;
+    lastExternalOpen_ = now;
+
+    const std::size_t firstNew = player_.playlist().size();
+    if (player_.enqueue(paths) > 0 && !sameBatch && player_.playlist().current() != firstNew)
+        player_.play(firstNew);
 }
 
 void App::onDrop(int count, const char** paths) {
