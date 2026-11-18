@@ -3,10 +3,13 @@
 #include "audio/AudioAnalyzer.h"
 #include "audio/AudioEngine.h"
 #include "DevTour.h"
+#include "player/Player.h"
+#include "ui/Ui.h"
 #include "viz/VisualizerManager.h"
 
 #include <memory>
 #include <string>
+#include <vector>
 
 struct GLFWwindow;
 
@@ -15,15 +18,14 @@ public:
     App();
     ~App();
 
-    // `initialFile` (UTF-8, may be empty) starts playing right away.
-    int run(const std::string& initialFile);
+    // `paths` (UTF-8 files or folders, may be empty) are queued and the first starts playing.
+    int run(const std::vector<std::string>& paths);
 
 private:
     bool init();
     void shutdown();
     void frame(float dt);
     void updateTitle();
-    void openFile(const std::string& path);
 
     void onKey(int key, int action, int mods);
     void onDrop(int count, const char** paths);
@@ -35,10 +37,11 @@ private:
 
     AudioEngine audio_;
     AudioAnalyzer analyzer_;
+    Player player_{audio_};
 
     VisualizerManager visualizers_;
+    Ui ui_;
     std::unique_ptr<DevTour> tour_;   // only when MUSIC_APP_TOUR is set
 
-    std::string trackName_;
     double titleTimer_ = 0.0;
 };

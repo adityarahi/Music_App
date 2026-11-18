@@ -2,6 +2,8 @@
 
 #include <cstdio>
 #include <string>
+#include <utility>
+#include <vector>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -9,14 +11,15 @@
 
 // argv on Windows is in the local ANSI code page; fetch the real UTF-16
 // command line so file names with non-English characters survive.
-static std::string firstArgUtf8() {
+static std::vector<std::string> argsUtf8() {
     int argc = 0;
     LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-    std::string result;
-    if (argv && argc > 1) {
-        const int len = WideCharToMultiByte(CP_UTF8, 0, argv[1], -1, nullptr, 0, nullptr, nullptr);
-        result.resize(static_cast<std::size_t>(len > 0 ? len - 1 : 0));
-        WideCharToMultiByte(CP_UTF8, 0, argv[1], -1, result.data(), len, nullptr, nullptr);
+    std::vector<std::string> result;
+    for (int i = 1; argv && i < argc; ++i) {
+        const int len = WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, nullptr, 0, nullptr, nullptr);
+        std::string arg(static_cast<std::size_t>(len > 0 ? len - 1 : 0), '\0');
+        WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, arg.data(), len, nullptr, nullptr);
+        result.push_back(std::move(arg));
     }
     LocalFree(argv);
     return result;
@@ -30,11 +33,11 @@ int main(int argc, char** argv) {
 #ifdef _WIN32
     (void)argc;
     (void)argv;
-    const std::string file = firstArgUtf8();
+    const std::vector<std::string> paths = argsUtf8();
 #else
-    const std::string file = argc > 1 ? argv[1] : "";
+    const std::vector<std::string> paths(argv + 1, argv + argc);
 #endif
 
     App app;
-    return app.run(file);
+    return app.run(paths);
 }

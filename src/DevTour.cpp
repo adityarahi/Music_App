@@ -1,6 +1,7 @@
 #include "DevTour.h"
 
 #include "audio/AudioEngine.h"
+#include "ui/Ui.h"
 #include "viz/VisualizerManager.h"
 
 #include <glad/gl.h>
@@ -14,6 +15,7 @@ namespace {
 constexpr float kSettleSeconds = 3.5f;     // let feedback trails and smoothing build up
 constexpr float kMidFadeSeconds = 0.75f;   // half of the 1.5 s cross-fade
 constexpr double kStartAt = 60.0;          // skip quiet intros
+constexpr float kUiSeconds = 1.5f;         // let the UI fade in before the controls shot
 
 std::string slug(const char* name) {
     std::string out;
@@ -24,14 +26,26 @@ std::string slug(const char* name) {
 
 }  // namespace
 
-bool DevTour::afterRender(float dt, AudioEngine& audio, VisualizerManager& visualizers, int width, int height) {
+bool DevTour::afterRender(float dt, AudioEngine& audio, VisualizerManager& visualizers, Ui& ui, int width, int height) {
     if (!started_) {
         started_ = true;
         if (audio.duration() > kStartAt + 30.0) audio.seek(kStartAt);
+        ui.setPlaylistOpen(true);
         std::printf("Tour: capturing %zu visualizers into %s\n", visualizers.count(), directory_.c_str());
     }
 
     clock_ += dt;
+
+    // First shot: the controls and playlist; after that, hide them for the visualizer shots.
+    if (!uiCaptured_) {
+        if (clock_ < kUiSeconds) return false;
+        capture("0_controls", width, height);
+        uiCaptured_ = true;
+        ui.setPlaylistOpen(false);
+        ui.hideUntilMouseMoves();
+        clock_ = 0.0f;
+        return false;
+    }
 
     if (shown_ > 0 && !fadeCaptured_ && clock_ >= kMidFadeSeconds) {
         capture(std::to_string(shown_) + "_crossfade", width, height);

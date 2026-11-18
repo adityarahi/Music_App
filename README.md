@@ -36,14 +36,27 @@ or a `C:\...` path rather than `/home/...`, or just drag a file onto the window.
 
 ## Controls
 
+Move the mouse to show the on-screen controls (play/pause, previous/next,
+seek bar, volume, visualizer switcher, playlist). They fade out after 3
+seconds without mouse movement.
+
+Add music by dragging files or folders onto the window, passing them on the
+command line (`music_app song1.mp3 song2.mp3 ~/Music`), or with **Add files...**
+in the playlist. MP3, FLAC and WAV are supported.
+
 | Key | Action |
 |---|---|
-| Drag & drop | Open an MP3 |
 | Space | Play / pause |
 | Left / Right | Seek 5 s (hold Shift for 30 s) |
-| Up / Down | Volume |
+| Up / Down, mouse wheel | Volume |
+| N / Shift+N | Next / previous track |
 | V / Shift+V | Next / previous visualizer (1.5 s cross-fade) |
+| P | Show / hide playlist |
+| O | Add files... |
+| Tab | Hide / show all controls |
 | Esc | Quit |
+
+In the playlist: double-click a track to play it, right-click to remove it.
 
 ## Layout
 
@@ -57,6 +70,13 @@ src/
     RingBuffer.h        lock-free audio -> render hand-off
     AudioAnalyzer.*     per-frame features: waveform, FFT spectrum, 32 log bands,
                         bass/mid/treble, loudness, beat detection
+  player/
+    Playlist.*          track list, current track, repeat
+    Player.*            transport logic shared by keys, mouse and drag & drop
+    Paths.h             UTF-8 <-> std::filesystem conversions
+  ui/
+    Ui.*                Dear ImGui control bar, playlist panel, auto-hide
+    FileBrowser.*       built-in "Add music" file picker
   render/
     Shader.*            GLSL program helper
     RenderTarget.*      offscreen framebuffer + FramebufferScope
@@ -76,9 +96,10 @@ cmake/                  MinGW cross-compile toolchain
 
 ## Screenshot tour
 
-Set `MUSIC_APP_TOUR` to a directory and the app seeks to 1:00, shows each
-visualizer for a few seconds, saves one `.ppm` screenshot per visualizer (plus
-one mid cross-fade), and exits:
+Set `MUSIC_APP_TOUR` to a directory and the app seeks to 1:00, saves a
+screenshot of the controls with the playlist open, then shows each visualizer
+for a few seconds, saves one `.ppm` screenshot per visualizer (plus one mid
+cross-fade), and exits:
 
 ```bash
 mkdir -p shots && MUSIC_APP_TOUR=shots ./build/linux-debug/music_app song.mp3

@@ -16,11 +16,6 @@ namespace {
 
 constexpr const char* kAppName = "Music App";
 
-std::string fileNameOf(const std::string& path) {
-    const auto slash = path.find_last_of("/\\");
-    return slash == std::string::npos ? path : path.substr(slash + 1);
-}
-
 std::string formatTime(double seconds) {
     const int total = static_cast<int>(seconds);
     char buf[16];
@@ -36,9 +31,9 @@ App::App() = default;
 
 App::~App() { shutdown(); }
 
-int App::run(const std::string& initialFile) {
+int App::run(const std::vector<std::string>& paths) {
     if (!init()) return 1;
-    if (!initialFile.empty()) openFile(initialFile);
+    if (!paths.empty()) player_.enqueue(paths);
 
     double last = glfwGetTime();
     while (!glfwWindowShouldClose(window_)) {
@@ -49,7 +44,7 @@ int App::run(const std::string& initialFile) {
         last = now;
 
         frame(dt);
-        if (tour_ && tour_->afterRender(dt, audio_, visualizers_, fbWidth_, fbHeight_))
+        if (tour_ && tour_->afterRender(dt, audio_, visualizers_, ui_, fbWidth_, fbHeight_))
             glfwSetWindowShouldClose(window_, GLFW_TRUE);
         glfwSwapBuffers(window_);
     }
@@ -83,6 +78,7 @@ bool App::init() {
     }
     std::printf("OpenGL: %s | %s\n", glGetString(GL_VERSION), glGetString(GL_RENDERER));
 
+    // Installed before the UI so ImGui chains to them rather than replacing them.
     glfwSetWindowUserPointer(window_, this);
     glfwSetKeyCallback(window_, [](GLFWwindow* w, int key, int, int action, int mods) { fromWindow(w)->onKey(key, action, mods); });
     glfwSetDropCallback(window_, [](GLFWwindow* w, int count, const char** paths) { fromWindow(w)->onDrop(count, paths); });
@@ -98,6 +94,8 @@ bool App::init() {
     visualizers_.add(std::make_unique<Oscilloscope>());
     if (!visualizers_.init(fbWidth_, fbHeight_)) return false;
 
+    if (!ui_.init(window_)) return false;
+
     if (const char* tourDir = std::getenv("MUSIC_APP_TOUR"); tourDir && *tourDir)
         tour_ = std::make_unique<DevTour>(tourDir);
 
@@ -108,7 +106,9 @@ bool App::init() {
 void App::shutdown() {
     audio_.shutdown();
     if (window_) {
-        visualizers_.clear();  // GL objects die while the context is still alive
+        // GL objects die while the context is still alive.
+        ui_.shutdown();
+        visualizers_.clear();
         glfwDestroyWindow(window_);
         window_ = nullptr;
         glfwTerminate();
@@ -116,9 +116,15 @@ void App::shutdown() {
 }
 
 void App::frame(float dt) {
+    ui_.beginFrame();
+    player_.update();
+
     analyzer_.update(audio_.samples(), audio_.sampleRate(), dt);
     visualizers_.update(analyzer_.features(), dt);
     visualizers_.render();
+
+    ui_.draw(player_, visualizers_, dt);
+    ui_.endFrame();
 
     titleTimer_ -= dt;
     if (titleTimer_ <= 0.0) updateTitle();
@@ -127,52 +133,40 @@ void App::frame(float dt) {
 void App::updateTitle() {
     titleTimer_ = 0.25;
     std::string title = kAppName;
-    if (audio_.hasTrack()) {
-        title = trackName_ + "  [" + formatTime(audio_.position()) + " / " + formatTime(audio_.duration()) + "]";
+    if (const Track* track = player_.playlist().currentTrack(); track && audio_.hasTrack()) {
+        title = track->displayName + "  [" + formatTime(audio_.position()) + " / " + formatTime(audio_.duration()) + "]";
         if (!audio_.isPlaying()) title += "  (paused)";
-        title += "  vol " + std::to_string(static_cast<int>(audio_.volume() * 100.0f + 0.5f)) + "%";
-        title += "  | " + std::string(visualizers_.current().name()) + "  - " + kAppName;
-    } else {
-        title += "  - drop an MP3 file here";
+        title += "  - " + std::string(kAppName);
     }
     glfwSetWindowTitle(window_, title.c_str());
 }
 
-void App::openFile(const std::string& path) {
-    if (audio_.load(path)) {
-        trackName_ = fileNameOf(path);
-        std::printf("Playing: %s\n", path.c_str());
-    } else {
-        trackName_.clear();
-    }
-    updateTitle();
-}
-
 void App::onKey(int key, int action, int mods) {
     if (action != GLFW_PRESS && action != GLFW_REPEAT) return;
-    const double seekStep = (mods & GLFW_MOD_SHIFT) ? 30.0 : 5.0;
+    if (ui_.wantsKeyboard()) return;  // typing in a text field
+    const bool shift = (mods & GLFW_MOD_SHIFT) != 0;
+    const bool pressed = action == GLFW_PRESS;
+    const double seekStep = shift ? 30.0 : 5.0;
 
     switch (key) {
         case GLFW_KEY_ESCAPE: glfwSetWindowShouldClose(window_, GLFW_TRUE); break;
-        case GLFW_KEY_SPACE:  if (action == GLFW_PRESS) audio_.togglePause(); break;
+        case GLFW_KEY_SPACE:  if (pressed) player_.togglePause(); break;
         case GLFW_KEY_RIGHT:  audio_.seek(audio_.position() + seekStep); break;
         case GLFW_KEY_LEFT:   audio_.seek(audio_.position() - seekStep); break;
         case GLFW_KEY_UP:     audio_.setVolume(audio_.volume() + 0.05f); break;
         case GLFW_KEY_DOWN:   audio_.setVolume(audio_.volume() - 0.05f); break;
-        case GLFW_KEY_V:
-            if (action == GLFW_PRESS) {
-                if (mods & GLFW_MOD_SHIFT) visualizers_.previous();
-                else visualizers_.next();
-                std::printf("Visualizer: %s\n", visualizers_.current().name());
-            }
-            break;
+        case GLFW_KEY_N:      if (pressed) { if (shift) player_.previous(); else player_.next(); } break;
+        case GLFW_KEY_V:      if (pressed) { if (shift) visualizers_.previous(); else visualizers_.next(); } break;
+        case GLFW_KEY_P:      if (pressed) ui_.togglePlaylist(); break;
+        case GLFW_KEY_O:      if (pressed) ui_.openFileBrowser(); break;
+        case GLFW_KEY_TAB:    if (pressed) ui_.toggleVisible(); break;
         default: return;
     }
     updateTitle();
 }
 
 void App::onDrop(int count, const char** paths) {
-    if (count > 0) openFile(paths[0]);  // playlist support comes later
+    player_.enqueue(std::vector<std::string>(paths, paths + count));
 }
 
 void App::onFramebufferResize(int width, int height) {

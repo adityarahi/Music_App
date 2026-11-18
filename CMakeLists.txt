@@ -38,7 +38,14 @@ FetchContent_Declare(kissfft
     SOURCE_SUBDIR _sources_only
 )
 
-FetchContent_MakeAvailable(glfw miniaudio kissfft)
+# Dear ImGui: on-screen controls drawn over the visualizer.
+FetchContent_Declare(imgui
+    URL https://github.com/ocornut/imgui/archive/refs/tags/v1.92.9b.tar.gz
+    URL_HASH SHA256=21d8a0a565e85dce943e375db00812c2f3f0ab21f3f0f7964e364a63422d7f99
+    SOURCE_SUBDIR _sources_only
+)
+
+FetchContent_MakeAvailable(glfw miniaudio kissfft imgui)
 
 add_library(miniaudio INTERFACE)
 target_include_directories(miniaudio SYSTEM INTERFACE ${miniaudio_SOURCE_DIR})
@@ -48,6 +55,17 @@ add_library(kissfft STATIC
     ${kissfft_SOURCE_DIR}/kiss_fftr.c
 )
 target_include_directories(kissfft SYSTEM PUBLIC ${kissfft_SOURCE_DIR})
+
+add_library(imgui STATIC
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+)
+target_include_directories(imgui SYSTEM PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
+target_link_libraries(imgui PUBLIC glfw)
 
 # glad: OpenGL 3.3 core loader, pre-generated into third_party/glad.
 add_library(glad STATIC third_party/glad/src/gl.c)
@@ -64,6 +82,10 @@ add_executable(music_app
     src/audio/AudioEngine.cpp
     src/audio/AudioAnalyzer.cpp
     src/audio/miniaudio_impl.c
+    src/player/Player.cpp
+    src/player/Playlist.cpp
+    src/ui/FileBrowser.cpp
+    src/ui/Ui.cpp
     src/render/Fullscreen.cpp
     src/render/GlowLine.cpp
     src/render/RenderTarget.cpp
@@ -76,7 +98,7 @@ add_executable(music_app
 )
 
 target_include_directories(music_app PRIVATE src)
-target_link_libraries(music_app PRIVATE glfw glad miniaudio kissfft)
+target_link_libraries(music_app PRIVATE glfw glad miniaudio kissfft imgui)
 
 if(MSVC)
     target_compile_options(music_app PRIVATE /W4)
