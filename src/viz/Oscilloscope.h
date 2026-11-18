@@ -1,6 +1,6 @@
 #pragma once
 
-#include "render/Shader.h"
+#include "render/GlowLine.h"
 #include "viz/Visualizer.h"
 
 #include <array>
@@ -10,8 +10,6 @@
 // drifts over time and brightens with loudness.
 class Oscilloscope final : public Visualizer {
 public:
-    ~Oscilloscope() override;
-
     const char* name() const override { return "Oscilloscope"; }
     bool init(int width, int height) override;
     void resize(int width, int height) override;
@@ -19,28 +17,17 @@ public:
     void render() override;
 
 private:
-    // The vertex shader pushes each vertex `side * halfWidth` pixels along
-    // `normal`, so one set of geometry serves both the glow and core passes.
-    struct Vertex {
-        float x, y;     // point on the trace, pixels
-        float nx, ny;   // unit normal, pixels
-        float side;     // -1 / +1
-    };
+    void buildTrace(const float* samples, std::size_t count, float centerY, float amplitude);
 
-    void appendTrace(const float* samples, std::size_t count, float centerY, float amplitude);
-    void drawPass(float halfWidth, float falloff, const float* rgb, const float* rgb2, float alpha);
-
-    Shader shader_;
-    GLuint vao_ = 0;
-    GLuint vbo_ = 0;
+    GlowLine left_;
+    GlowLine right_;
+    std::vector<Vec2> points_;
 
     int width_ = 1;
     int height_ = 1;
 
-    std::array<float, AudioFeatures::kWaveformSize> left_{};
-    std::array<float, AudioFeatures::kWaveformSize> right_{};
+    std::array<float, AudioFeatures::kWaveformSize> leftSamples_{};
+    std::array<float, AudioFeatures::kWaveformSize> rightSamples_{};
     float level_ = 0.0f;
     float time_ = 0.0f;
-
-    std::vector<Vertex> vertices_;
 };

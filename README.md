@@ -42,7 +42,7 @@ or a `C:\...` path rather than `/home/...`, or just drag a file onto the window.
 | Space | Play / pause |
 | Left / Right | Seek 5 s (hold Shift for 30 s) |
 | Up / Down | Volume |
-| V | Next visualizer |
+| V / Shift+V | Next / previous visualizer (1.5 s cross-fade) |
 | Esc | Quit |
 
 ## Layout
@@ -51,6 +51,7 @@ or a `C:\...` path rather than `/home/...`, or just drag a file onto the window.
 src/
   main.cpp              entry point (UTF-8 command line on Windows)
   App.*                 window, main loop, input
+  DevTour.*             screenshot tour for checking visuals (see below)
   audio/
     AudioEngine.*       miniaudio playback; taps mixed audio on the audio thread
     RingBuffer.h        lock-free audio -> render hand-off
@@ -58,11 +59,29 @@ src/
                         bass/mid/treble, loudness, beat detection
   render/
     Shader.*            GLSL program helper
+    RenderTarget.*      offscreen framebuffer + FramebufferScope
+    Fullscreen.*        full-screen triangle for post-processing passes
+    GlowLine.*          thick soft-edged glowing polylines
     Color.h             HSV -> RGB
   viz/
     Visualizer.h        interface every effect implements
+    VisualizerManager.* switching and cross-fades
     SpectrumBars.*      glowing bars with falling peak caps and reflection
+    FeedbackTunnel.*    waveform ring with zooming, fading feedback trails
+    Plasma.*            shader-only flowing colour field
     Oscilloscope.*      stereo glowing waveform
 third_party/glad/       generated OpenGL 3.3 core loader
 cmake/                  MinGW cross-compile toolchain
+```
+
+## Screenshot tour
+
+Set `MUSIC_APP_TOUR` to a directory and the app seeks to 1:00, shows each
+visualizer for a few seconds, saves one `.ppm` screenshot per visualizer (plus
+one mid cross-fade), and exits:
+
+```bash
+mkdir -p shots && MUSIC_APP_TOUR=shots ./build/linux-debug/music_app song.mp3
+# Windows build from WSL: pass the variable through with WSLENV
+MUSIC_APP_TOUR=shots WSLENV=MUSIC_APP_TOUR/p ./build/windows-release/music_app.exe song.mp3
 ```

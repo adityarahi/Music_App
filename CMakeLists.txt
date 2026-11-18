@@ -60,12 +60,19 @@ target_include_directories(glad PUBLIC third_party/glad/include)
 add_executable(music_app
     src/main.cpp
     src/App.cpp
+    src/DevTour.cpp
     src/audio/AudioEngine.cpp
     src/audio/AudioAnalyzer.cpp
     src/audio/miniaudio_impl.c
+    src/render/Fullscreen.cpp
+    src/render/GlowLine.cpp
+    src/render/RenderTarget.cpp
     src/render/Shader.cpp
+    src/viz/FeedbackTunnel.cpp
     src/viz/Oscilloscope.cpp
+    src/viz/Plasma.cpp
     src/viz/SpectrumBars.cpp
+    src/viz/VisualizerManager.cpp
 )
 
 target_include_directories(music_app PRIVATE src)

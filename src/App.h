@@ -2,11 +2,11 @@
 
 #include "audio/AudioAnalyzer.h"
 #include "audio/AudioEngine.h"
-#include "viz/Visualizer.h"
+#include "DevTour.h"
+#include "viz/VisualizerManager.h"
 
 #include <memory>
 #include <string>
-#include <vector>
 
 struct GLFWwindow;
 
@@ -36,8 +36,8 @@ private:
     AudioEngine audio_;
     AudioAnalyzer analyzer_;
 
-    std::vector<std::unique_ptr<Visualizer>> visualizers_;
-    std::size_t activeViz_ = 0;
+    VisualizerManager visualizers_;
+    std::unique_ptr<DevTour> tour_;   // only when MUSIC_APP_TOUR is set
 
     std::string trackName_;
     double titleTimer_ = 0.0;

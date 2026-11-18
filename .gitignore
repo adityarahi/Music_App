@@ -1,4 +1,5 @@
 build/
 .cache/
 *.mp3
+*.ppm
 *:Zone.Identifier
