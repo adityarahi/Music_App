@@ -17,7 +17,7 @@
 
 namespace {
 
-constexpr const char* kAppName = "Music App";
+constexpr const char* kAppName = "Dhundarsh";
 
 std::string formatTime(double seconds) {
     const int total = static_cast<int>(seconds);
@@ -136,7 +136,7 @@ bool App::init() {
 
     if (!ui_.init(window_)) return false;
 
-    if (const char* tourDir = std::getenv("MUSIC_APP_TOUR"); tourDir && *tourDir)
+    if (const char* tourDir = std::getenv("DHUNDARSH_TOUR"); tourDir && *tourDir)
         tour_ = std::make_unique<DevTour>(tourDir);
 
     updateTitle();

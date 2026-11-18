@@ -415,15 +415,15 @@ void Ui::drawSettings(VisualizerManager& visualizers) {
     if (platform::supportsOpenWith()) {
         ImGui::SeparatorText("Windows integration");
         const bool registered = platform::isOpenWithRegistered();
-        ImGui::TextWrapped(registered ? "Music App is in the \"Open with\" menu for MP3, FLAC and WAV files."
-                                      : "Add Music App to the \"Open with\" menu for MP3, FLAC and WAV files.");
+        ImGui::TextWrapped(registered ? "Dhundarsh is in the \"Open with\" menu for MP3, FLAC and WAV files."
+                                      : "Add Dhundarsh to the \"Open with\" menu for MP3, FLAC and WAV files.");
 
         // Registering a copy that lives inside WSL only works while WSL is running.
         const std::string exe = platform::executablePath();
         if (exe.rfind("\\\\", 0) == 0) {
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.75f, 0.35f, 1.0f));
-            ImGui::TextWrapped("This copy is running from inside WSL. Copy music_app.exe to a Windows folder "
-                               "(for example C:\\Apps\\MusicApp) and register from there.");
+            ImGui::TextWrapped("This copy is running from inside WSL. Copy dhundarsh.exe to a Windows folder "
+                               "(for example C:\\Apps\\Dhundarsh) and register from there.");
             ImGui::PopStyleColor();
         }
 
@@ -431,7 +431,7 @@ void Ui::drawSettings(VisualizerManager& visualizers) {
             if (ImGui::Button("Add to \"Open with\"")) {
                 std::string error;
                 openWithMessage_ = platform::registerOpenWith(error)
-                                       ? "Done. Right-click a song > Open with > Music App."
+                                       ? "Done. Right-click a song > Open with > Dhundarsh."
                                        : error;
             }
         } else if (ImGui::Button("Remove from \"Open with\"")) {

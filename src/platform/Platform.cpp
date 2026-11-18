@@ -33,11 +33,15 @@ namespace platform {
 
 namespace {
 
-constexpr wchar_t kMutexName[] = L"Local\\MusicApp.SingleInstance";
-constexpr wchar_t kWindowProp[] = L"MusicApp.MainWindow";
+constexpr wchar_t kMutexName[] = L"Local\\Dhundarsh.SingleInstance";
+constexpr wchar_t kWindowProp[] = L"Dhundarsh.MainWindow";
 constexpr ULONG_PTR kCopyDataFiles = 0x4D41;   // tags our WM_COPYDATA messages
-constexpr wchar_t kAppKey[] = L"Software\\Classes\\Applications\\music_app.exe";
+constexpr wchar_t kExeName[] = L"dhundarsh.exe";
+constexpr wchar_t kAppKey[] = L"Software\\Classes\\Applications\\dhundarsh.exe";
 constexpr const wchar_t* kExtensions[] = {L".mp3", L".flac", L".wav"};
+// Registered by builds from before the app was renamed; cleaned up so
+// Explorer doesn't keep offering the old name.
+constexpr wchar_t kLegacyExeName[] = L"music_app.exe";
 
 std::string narrow(const std::wstring& s) {
     if (s.empty()) return {};
@@ -93,6 +97,12 @@ LRESULT CALLBACK hookedWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPa
         }
     }
     return CallWindowProcW(g_previousProc, hwnd, msg, wParam, lParam);
+}
+
+void removeRegistration(const std::wstring& exeName) {
+    RegDeleteTreeW(HKEY_CURRENT_USER, (L"Software\\Classes\\Applications\\" + exeName).c_str());
+    for (const wchar_t* ext : kExtensions)
+        RegDeleteTreeW(HKEY_CURRENT_USER, (std::wstring(L"Software\\Classes\\") + ext + L"\\OpenWithList\\" + exeName).c_str());
 }
 
 bool setString(HKEY root, const std::wstring& key, const wchar_t* name, const std::wstring& value) {
@@ -159,14 +169,16 @@ bool isOpenWithRegistered() {
 }
 
 bool registerOpenWith(std::string& error) {
+    removeRegistration(kLegacyExeName);
+
     const std::wstring exe = exePathW();
     const std::wstring app = kAppKey;
     bool ok = setString(HKEY_CURRENT_USER, app + L"\\shell\\open\\command", nullptr, L"\"" + exe + L"\" \"%1\"");
-    ok = ok && setString(HKEY_CURRENT_USER, app, L"FriendlyAppName", L"Music App");
+    ok = ok && setString(HKEY_CURRENT_USER, app, L"FriendlyAppName", L"Dhundarsh");
     ok = ok && setString(HKEY_CURRENT_USER, app + L"\\DefaultIcon", nullptr, L"\"" + exe + L"\",0");
     for (const wchar_t* ext : kExtensions) {
         ok = ok && setString(HKEY_CURRENT_USER, app + L"\\SupportedTypes", ext, L"");
-        ok = ok && setString(HKEY_CURRENT_USER, std::wstring(L"Software\\Classes\\") + ext + L"\\OpenWithList\\music_app.exe", nullptr, L"");
+        ok = ok && setString(HKEY_CURRENT_USER, std::wstring(L"Software\\Classes\\") + ext + L"\\OpenWithList\\" + kExeName, nullptr, L"");
     }
     if (!ok) {
         error = "Could not write to the registry.";
@@ -177,9 +189,8 @@ bool registerOpenWith(std::string& error) {
 }
 
 void unregisterOpenWith() {
-    RegDeleteTreeW(HKEY_CURRENT_USER, kAppKey);
-    for (const wchar_t* ext : kExtensions)
-        RegDeleteTreeW(HKEY_CURRENT_USER, (std::wstring(L"Software\\Classes\\") + ext + L"\\OpenWithList\\music_app.exe").c_str());
+    removeRegistration(kExeName);
+    removeRegistration(kLegacyExeName);
     SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, nullptr, nullptr);
 }
 

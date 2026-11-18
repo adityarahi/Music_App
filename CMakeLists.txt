@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(music_app VERSION 0.1.0 LANGUAGES C CXX)
+project(dhundarsh VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -75,7 +75,7 @@ target_include_directories(glad PUBLIC third_party/glad/include)
 # Application
 # ---------------------------------------------------------------------------
 
-add_executable(music_app
+add_executable(dhundarsh
     src/main.cpp
     src/App.cpp
     src/platform/Platform.cpp
@@ -102,35 +102,35 @@ add_executable(music_app
     src/viz/VisualizerManager.cpp
 )
 
-target_include_directories(music_app PRIVATE src)
-target_link_libraries(music_app PRIVATE glfw glad miniaudio kissfft imgui)
+target_include_directories(dhundarsh PRIVATE src)
+target_link_libraries(dhundarsh PRIVATE glfw glad miniaudio kissfft imgui)
 
 if(MSVC)
-    target_compile_options(music_app PRIVATE /W4)
+    target_compile_options(dhundarsh PRIVATE /W4)
 else()
-    target_compile_options(music_app PRIVATE
+    target_compile_options(dhundarsh PRIVATE
         $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -Wpedantic>)
 endif()
 
 if(WIN32)
-    target_compile_definitions(music_app PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
-    target_link_libraries(music_app PRIVATE shell32 advapi32)
+    target_compile_definitions(dhundarsh PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+    target_link_libraries(dhundarsh PRIVATE shell32 advapi32)
 
     # Icon + version info (the version's FileDescription is the name shown in "Open with").
     enable_language(RC)
-    set(ICON_PATH ${CMAKE_CURRENT_SOURCE_DIR}/assets/music_app.ico)
-    configure_file(cmake/music_app.rc.in ${CMAKE_CURRENT_BINARY_DIR}/music_app.rc @ONLY)
-    target_sources(music_app PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/music_app.rc)
+    set(ICON_PATH ${CMAKE_CURRENT_SOURCE_DIR}/assets/dhundarsh.ico)
+    configure_file(cmake/dhundarsh.rc.in ${CMAKE_CURRENT_BINARY_DIR}/dhundarsh.rc @ONLY)
+    target_sources(dhundarsh PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/dhundarsh.rc)
 
     # Release builds are GUI apps with no console window; Debug keeps the console for logs.
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
-        set_target_properties(music_app PROPERTIES WIN32_EXECUTABLE ON)
+        set_target_properties(dhundarsh PROPERTIES WIN32_EXECUTABLE ON)
     endif()
     if(MINGW)
         # Single self-contained .exe: no libstdc++/libgcc/winpthread DLLs to ship.
-        target_link_options(music_app PRIVATE -static)
+        target_link_options(dhundarsh PRIVATE -static)
     endif()
 else()
     find_package(Threads REQUIRED)
-    target_link_libraries(music_app PRIVATE Threads::Threads ${CMAKE_DL_LIBS} m)
+    target_link_libraries(dhundarsh PRIVATE Threads::Threads ${CMAKE_DL_LIBS} m)
 endif()

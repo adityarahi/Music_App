@@ -48,7 +48,7 @@ private:
 
     VisualizerManager visualizers_;
     Ui ui_;
-    std::unique_ptr<DevTour> tour_;   // only when MUSIC_APP_TOUR is set
+    std::unique_ptr<DevTour> tour_;   // only when DHUNDARSH_TOUR is set
 
     double titleTimer_ = 0.0;
     double lastExternalOpen_ = -10.0;

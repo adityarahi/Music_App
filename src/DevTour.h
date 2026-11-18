@@ -7,7 +7,7 @@ class AudioEngine;
 class Ui;
 class VisualizerManager;
 
-// Developer aid, enabled by setting MUSIC_APP_TOUR=<directory>.
+// Developer aid, enabled by setting DHUNDARSH_TOUR=<directory>.
 // Seeks into the track, captures the on-screen controls with the playlist
 // open, then hides them and shows every visualizer in turn, saving a
 // screenshot of each one (plus one mid cross-fade) as a .ppm image, then
