@@ -1,6 +1,7 @@
 #include "App.h"
 
 #include "viz/Oscilloscope.h"
+#include "viz/SpectrumBars.h"
 
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
@@ -86,6 +87,7 @@ bool App::init() {
 
     if (!audio_.init()) return false;
 
+    visualizers_.push_back(std::make_unique<SpectrumBars>());
     visualizers_.push_back(std::make_unique<Oscilloscope>());
     for (auto& viz : visualizers_) {
         if (!viz->init(fbWidth_, fbHeight_)) {
@@ -109,11 +111,11 @@ void App::shutdown() {
 }
 
 void App::frame(float dt) {
-    analyzer_.update(audio_.samples(), dt);
+    analyzer_.update(audio_.samples(), audio_.sampleRate(), dt);
     const AudioFeatures& features = analyzer_.features();
 
-    // Background breathes faintly with the music.
-    const float glow = std::min(features.level * 0.25f, 0.08f);
+    // Background breathes faintly with the music and flickers on beats.
+    const float glow = std::min(features.level * 0.25f, 0.08f) + 0.03f * features.beatPulse;
     glViewport(0, 0, fbWidth_, fbHeight_);
     glClearColor(0.01f + glow * 0.4f, 0.01f + glow * 0.3f, 0.03f + glow, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -132,8 +134,8 @@ void App::updateTitle() {
     if (audio_.hasTrack()) {
         title = trackName_ + "  [" + formatTime(audio_.position()) + " / " + formatTime(audio_.duration()) + "]";
         if (!audio_.isPlaying()) title += "  (paused)";
-        title += "  vol " + std::to_string(static_cast<int>(audio_.volume() * 100.0f + 0.5f)) + "%  - ";
-        title += kAppName;
+        title += "  vol " + std::to_string(static_cast<int>(audio_.volume() * 100.0f + 0.5f)) + "%";
+        title += "  | " + std::string(visualizers_[activeViz_]->name()) + "  - " + kAppName;
     } else {
         title += "  - drop an MP3 file here";
     }
@@ -161,6 +163,12 @@ void App::onKey(int key, int action, int mods) {
         case GLFW_KEY_LEFT:   audio_.seek(audio_.position() - seekStep); break;
         case GLFW_KEY_UP:     audio_.setVolume(audio_.volume() + 0.05f); break;
         case GLFW_KEY_DOWN:   audio_.setVolume(audio_.volume() - 0.05f); break;
+        case GLFW_KEY_V:
+            if (action == GLFW_PRESS) {
+                activeViz_ = (activeViz_ + 1) % visualizers_.size();
+                std::printf("Visualizer: %s\n", visualizers_[activeViz_]->name());
+            }
+            break;
         default: return;
     }
     updateTitle();

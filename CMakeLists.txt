@@ -30,10 +30,24 @@ FetchContent_Declare(miniaudio
     SOURCE_SUBDIR _header_only
 )
 
-FetchContent_MakeAvailable(glfw miniaudio)
+# KissFFT: small real-input FFT for the spectrum analyzer (float build).
+# Its own CMakeLists is skipped; the two source files we need are compiled below.
+FetchContent_Declare(kissfft
+    URL https://github.com/mborgerding/kissfft/archive/refs/tags/131.2.0.tar.gz
+    URL_HASH SHA256=205a8f6a448ef12b091f8ac6a514b5091bb5f6b0b543431ed75f673116cf5cbf
+    SOURCE_SUBDIR _sources_only
+)
+
+FetchContent_MakeAvailable(glfw miniaudio kissfft)
 
 add_library(miniaudio INTERFACE)
 target_include_directories(miniaudio SYSTEM INTERFACE ${miniaudio_SOURCE_DIR})
+
+add_library(kissfft STATIC
+    ${kissfft_SOURCE_DIR}/kiss_fft.c
+    ${kissfft_SOURCE_DIR}/kiss_fftr.c
+)
+target_include_directories(kissfft SYSTEM PUBLIC ${kissfft_SOURCE_DIR})
 
 # glad: OpenGL 3.3 core loader, pre-generated into third_party/glad.
 add_library(glad STATIC third_party/glad/src/gl.c)
@@ -51,10 +65,11 @@ add_executable(music_app
     src/audio/miniaudio_impl.c
     src/render/Shader.cpp
     src/viz/Oscilloscope.cpp
+    src/viz/SpectrumBars.cpp
 )
 
 target_include_directories(music_app PRIVATE src)
-target_link_libraries(music_app PRIVATE glfw glad miniaudio)
+target_link_libraries(music_app PRIVATE glfw glad miniaudio kissfft)
 
 if(MSVC)
     target_compile_options(music_app PRIVATE /W4)

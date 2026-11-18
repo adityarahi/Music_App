@@ -1,5 +1,7 @@
 #include "viz/Oscilloscope.h"
 
+#include "render/Color.h"
+
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -37,14 +39,6 @@ void main() {
     fragColor = vec4(uColor, uAlpha * pow(edge, uFalloff));
 }
 )";
-
-void hsvToRgb(float h, float s, float v, float* rgb) {
-    h = h - std::floor(h);
-    for (int i = 0; i < 3; ++i) {
-        const float k = std::fmod(5.0f - 2.0f * static_cast<float>(i) + h * 6.0f, 6.0f);
-        rgb[i] = v - v * s * std::clamp(std::min(k, 4.0f - k), 0.0f, 1.0f);
-    }
-}
 
 }  // namespace
 

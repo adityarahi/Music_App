@@ -42,6 +42,7 @@ or a `C:\...` path rather than `/home/...`, or just drag a file onto the window.
 | Space | Play / pause |
 | Left / Right | Seek 5 s (hold Shift for 30 s) |
 | Up / Down | Volume |
+| V | Next visualizer |
 | Esc | Quit |
 
 ## Layout
@@ -53,11 +54,15 @@ src/
   audio/
     AudioEngine.*       miniaudio playback; taps mixed audio on the audio thread
     RingBuffer.h        lock-free audio -> render hand-off
-    AudioAnalyzer.*     per-frame features (waveform, loudness; FFT next)
-  render/Shader.*       GLSL program helper
+    AudioAnalyzer.*     per-frame features: waveform, FFT spectrum, 32 log bands,
+                        bass/mid/treble, loudness, beat detection
+  render/
+    Shader.*            GLSL program helper
+    Color.h             HSV -> RGB
   viz/
     Visualizer.h        interface every effect implements
-    Oscilloscope.*      first effect
+    SpectrumBars.*      glowing bars with falling peak caps and reflection
+    Oscilloscope.*      stereo glowing waveform
 third_party/glad/       generated OpenGL 3.3 core loader
 cmake/                  MinGW cross-compile toolchain
 ```
